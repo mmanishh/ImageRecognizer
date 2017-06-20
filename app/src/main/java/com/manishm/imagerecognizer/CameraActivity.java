@@ -59,8 +59,10 @@ public class CameraActivity extends AppCompatActivity {
 
     private final String TAG = CameraActivity.class.getSimpleName();
     private final int CAMERA_REQUEST_CODE = 2;
+    private final int GALLERY_PERMISSIONS_REQUEST = 3;
+    private final int GALLERY_IMAGE_REQUEST = 31;
     private CameraView cameraView;
-    private ImageView imgFrontCam, imgInfo, imgFlash,imgCapture;
+    private ImageView imgFrontCam, imgInfo, imgFlash, imgCapture, imgAddPhoto;
     private TextView mTextView;
     private Handler mBackgroundHandler;
     public Uri imageUri;
@@ -80,6 +82,7 @@ public class CameraActivity extends AppCompatActivity {
         imgFlash = (ImageView) findViewById(R.id.img_flash);
         imgInfo = (ImageView) findViewById(R.id.img_info);
         imgCapture = (ImageView) findViewById(R.id.img_capture);
+        imgAddPhoto = (ImageView) findViewById(R.id.img_add_pic);
 
 
 
@@ -98,6 +101,7 @@ public class CameraActivity extends AppCompatActivity {
         imgFlash.setOnClickListener(onClickListener);
         imgInfo.setOnClickListener(onClickListener);
         imgCapture.setOnClickListener(onClickListener);
+        imgAddPhoto.setOnClickListener(onClickListener);
         //Speech.getInstance().say(getResources().getString(R.string.camera_tap_to_capture));
 
 
@@ -124,6 +128,11 @@ public class CameraActivity extends AppCompatActivity {
                     startActivity(new Intent(CameraActivity.this, InfoActivity.class));
                     break;
 
+                case R.id.img_add_pic:
+                    startGalleryChooser();
+                    break;
+
+
                 case R.id.img_capture:
                     Log.d(TAG + " view tapped", "true");
 
@@ -143,6 +152,16 @@ public class CameraActivity extends AppCompatActivity {
 
         }
     };
+
+    public void startGalleryChooser() {
+        if (PermissionUtils.requestPermission2(this, GALLERY_PERMISSIONS_REQUEST, Manifest.permission.READ_EXTERNAL_STORAGE)) {
+            Intent intent = new Intent();
+            intent.setType("image/*");
+            intent.setAction(Intent.ACTION_GET_CONTENT);
+            startActivityForResult(Intent.createChooser(intent, "Select a photo"),
+                    GALLERY_IMAGE_REQUEST);
+        }
+    }
 
 
     private CameraView.Callback mCallback
@@ -251,6 +270,25 @@ public class CameraActivity extends AppCompatActivity {
         Speech.getInstance().stopTextToSpeech();
 
 
+    }
+
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+
+        if (requestCode == GALLERY_IMAGE_REQUEST && resultCode == RESULT_OK && data != null) {
+            Bitmap bitmap = null;
+            try {
+                bitmap = MediaStore.Images.Media.getBitmap(this.getContentResolver(), data.getData());
+                uploadImage(bitmap);
+            } catch (IOException e) {
+                e.printStackTrace();
+                Toast.makeText(CameraActivity.this, "Please choose another image.", Toast.LENGTH_LONG).show();
+
+            }
+
+
+        }
     }
 
     private File makeDir() {
