@@ -1,11 +1,9 @@
 package com.manishm.imagerecognizer;
 
 import android.Manifest;
-import android.content.Context;
 import android.content.Intent;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
-import android.graphics.Camera;
 import android.net.Uri;
 import android.os.AsyncTask;
 import android.os.Environment;
@@ -32,28 +30,31 @@ import com.google.api.services.vision.v1.VisionRequestInitializer;
 import com.google.api.services.vision.v1.model.AnnotateImageRequest;
 import com.google.api.services.vision.v1.model.BatchAnnotateImagesRequest;
 import com.google.api.services.vision.v1.model.BatchAnnotateImagesResponse;
-import com.google.api.services.vision.v1.model.EntityAnnotation;
 import com.google.api.services.vision.v1.model.Feature;
 import com.google.api.services.vision.v1.model.Image;
+import com.google.gson.Gson;
+import com.manishm.imagerecognizer.model.JsonResponse;
+import com.manishm.imagerecognizer.model.Responses;
+import com.microsoft.projectoxford.vision.VisionServiceClient;
+import com.microsoft.projectoxford.vision.VisionServiceRestClient;
+import com.microsoft.projectoxford.vision.contract.AnalysisResult;
+import com.microsoft.projectoxford.vision.contract.Caption;
+import com.microsoft.projectoxford.vision.rest.VisionServiceException;
 
 import net.gotev.speech.Speech;
+import net.gotev.speech.TextToSpeechCallback;
 
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
-import org.w3c.dom.Text;
 
+import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
-import java.net.URI;
 import java.util.ArrayList;
-import java.util.List;
-import java.util.Locale;
-
-import static android.Manifest.permission.ACCESS_NETWORK_STATE;
 
 public class CameraActivity extends AppCompatActivity {
 
@@ -62,10 +63,13 @@ public class CameraActivity extends AppCompatActivity {
     private final int GALLERY_PERMISSIONS_REQUEST = 3;
     private final int GALLERY_IMAGE_REQUEST = 31;
     private CameraView cameraView;
-    private ImageView imgFrontCam, imgInfo, imgFlash, imgCapture, imgAddPhoto;
+    private ImageView imgFrontCam, imgInfo, imgFlash, imgCapture, imgAddPhoto, imgVolume;
     private TextView mTextView;
     private Handler mBackgroundHandler;
     public Uri imageUri;
+    private VisionServiceClient client;
+
+    private boolean volumeToggle = true;
 
 
     @Override
@@ -83,9 +87,12 @@ public class CameraActivity extends AppCompatActivity {
         imgInfo = (ImageView) findViewById(R.id.img_info);
         imgCapture = (ImageView) findViewById(R.id.img_capture);
         imgAddPhoto = (ImageView) findViewById(R.id.img_add_pic);
+        imgVolume = (ImageView) findViewById(R.id.img_volume);
 
 
-
+        if (client == null) {
+            client = new VisionServiceRestClient(getString(R.string.subscription_key));
+        }
 
         /*PermissionUtils.requestPermission(this, CAMERA_REQUEST_CODE, Manifest.permission.READ_EXTERNAL_STORAGE,
                 Manifest.permission.CAMERA, Manifest.permission.INTERNET, Manifest.permission.ACCESS_NETWORK_STATE);*/
@@ -102,6 +109,7 @@ public class CameraActivity extends AppCompatActivity {
         imgInfo.setOnClickListener(onClickListener);
         imgCapture.setOnClickListener(onClickListener);
         imgAddPhoto.setOnClickListener(onClickListener);
+        imgVolume.setOnClickListener(onClickListener);
         //Speech.getInstance().say(getResources().getString(R.string.camera_tap_to_capture));
 
 
@@ -132,6 +140,10 @@ public class CameraActivity extends AppCompatActivity {
                     startGalleryChooser();
                     break;
 
+                case R.id.img_volume:
+                    toggleVolumeIcon();
+
+                    break;
 
                 case R.id.img_capture:
                     Log.d(TAG + " view tapped", "true");
@@ -139,7 +151,8 @@ public class CameraActivity extends AppCompatActivity {
                     if (CommonUtils.isNetworkAvailable(CameraActivity.this)) {
                         cameraView.takePicture();
                     } else {
-                        Speech.getInstance().say(getResources().getString(R.string.warn_internet_conn));
+                        if (volumeToggle)
+                            Speech.getInstance().say(getResources().getString(R.string.warn_internet_conn));
                         mTextView.setText(getResources().getString(R.string.warn_internet_conn));
 
                     }
@@ -315,7 +328,8 @@ public class CameraActivity extends AppCompatActivity {
         // Switch text to loading
 
         mTextView.setText(getResources().getString(R.string.camera_image_being_upload));
-        Speech.getInstance().say(getResources().getString(R.string.camera_image_being_upload));
+        if (volumeToggle)
+            Speech.getInstance().say(getResources().getString(R.string.camera_image_being_upload));
 
         // Do the real work in an async task, because we need to use the network anyway
         new AsyncTask<Object, Void, String>() {
@@ -368,11 +382,17 @@ public class CameraActivity extends AppCompatActivity {
                         annotateImageRequest.setImage(base64EncodedImage);
 
                         // add the features we want
+
+
                         annotateImageRequest.setFeatures(new ArrayList<Feature>() {{
                             Feature labelDetection = new Feature();
                             labelDetection.setType("LABEL_DETECTION");
                             labelDetection.setMaxResults(10);
                             add(labelDetection);
+                            Feature logoDetection = new Feature();
+                            logoDetection.setType("LOGO_DETECTION");
+                            logoDetection.setMaxResults(10);
+                            add(logoDetection);
                         }});
 
                         // Add the list of one thing to the request
@@ -400,7 +420,8 @@ public class CameraActivity extends AppCompatActivity {
             protected void onPostExecute(String result) {
 
                 mTextView.setText(result);
-                Speech.getInstance().say(result);
+                if (volumeToggle)
+                    Speech.getInstance().say(result);
                 Toast.makeText(CameraActivity.this, result, Toast.LENGTH_LONG).show();
             }
         }.execute();
@@ -428,20 +449,20 @@ public class CameraActivity extends AppCompatActivity {
 
     public void uploadImage(Bitmap bitmap) {
         if (bitmap != null) {
-            try {
-                // scale the image to save on bandwidth
-                Bitmap finalBitmap =
-                        scaleBitmapDown(
-                                bitmap,
-                                1200);
+            /*try {*/
+            // scale the image to save on bandwidth
+            Bitmap finalBitmap =
+                    scaleBitmapDown(
+                            bitmap,
+                            1200);
 
-                callCloudVision(finalBitmap);
-                //mMainImage.setImageBitmap(bitmap);
+            sentToServer(finalBitmap);
+            //mMainImage.setImageBitmap(bitmap);
 
-            } catch (IOException e) {
+           /* } catch (IOException e) {
                 Log.d(TAG, "Image picking failed because " + e.getMessage());
                 Toast.makeText(this, R.string.image_picker_error, Toast.LENGTH_LONG).show();
-            }
+            }*/
         } else {
             Log.d(TAG, "Image picker gave us a null image.");
             Toast.makeText(this, R.string.image_picker_error, Toast.LENGTH_LONG).show();
@@ -460,18 +481,26 @@ public class CameraActivity extends AppCompatActivity {
 
             JSONArray webObject = jsonObject.getJSONArray("responses");
             JSONObject responeObject = webObject.getJSONObject(0);
-            JSONArray responseArray = responeObject.getJSONArray("labelAnnotations");
-            JSONObject firstObject = responseArray.getJSONObject(0);
-            //JSONArray entityArray =firstObject.getJSONArray("webEntities");
-
+            JSONArray labelResponseArray = responeObject.getJSONArray("labelAnnotations");
+            JSONObject labelObject = labelResponseArray.getJSONObject(0);
+            /*JSONArray logoResponseArray = responeObject.getJSONArray("logoAnnotations");
+            JSONObject logoObject = labelResponseArray.getJSONObject(0);*/
 
             Log.d(TAG + "json_result2", webObject.toString());
 
 
-            //JSONObject entityObject = entityArray.getJSONObject(0);
+            Gson gson = new Gson();
 
-            message += firstObject.getString("description");
-            double score = firstObject.getDouble("score");
+            JsonResponse gsondata = gson.fromJson(String.valueOf(response), JsonResponse.class);
+
+            if (gsondata.getResponses().get(0).getLogoAnnotations().get(0).getDescription() != null) {
+                message += gsondata.getResponses().get(0).getLogoAnnotations().get(0).getDescription();
+                double score = labelObject.getDouble("score");
+            } else {
+                message += gsondata.getResponses().get(0).getLabelAnnotations().get(0).getDescription();
+                double score = labelObject.getDouble("score");
+            }
+            //JSONObject entityObject = entityArray.getJSONObject(0);
 
 
         } catch (JSONException e) {
@@ -483,5 +512,112 @@ public class CameraActivity extends AppCompatActivity {
         return message;
     }
 
+    private String process(Bitmap bitmap) throws VisionServiceException, IOException {
+        Gson gson = new Gson();
 
+        // Put the image into an input stream for detection.
+        ByteArrayOutputStream output = new ByteArrayOutputStream();
+        bitmap.compress(Bitmap.CompressFormat.JPEG, 100, output);
+        ByteArrayInputStream inputStream = new ByteArrayInputStream(output.toByteArray());
+
+        AnalysisResult v = this.client.describe(inputStream, 1);
+
+        String result = gson.toJson(v);
+        Log.d(TAG + "microsoft result", result);
+
+        return result;
+    }
+
+    private void sentToServer(final Bitmap bitmap) {
+        final Exception[] error = {null};
+
+        notifyUser(getResources().getString(R.string.camera_image_being_upload));
+
+        new AsyncTask<Object, Void, String>() {
+            @Override
+            protected String doInBackground(Object... args) {
+                try {
+                    return process(bitmap);
+                } catch (Exception e) {
+                    error[0] = e;    // Store error
+                }
+
+                return null;
+            }
+
+            @Override
+            protected void onPostExecute(String data) {
+                super.onPostExecute(data);
+                // Display based on error existence
+                if (error[0] != null) {
+                    mTextView.setText(error[0].getMessage());
+                } else {
+                    Gson gson = new Gson();
+                    AnalysisResult result = gson.fromJson(data, AnalysisResult.class);
+                    for (Caption c : result.description.captions) {
+                        notifyUser(c.text);
+                    }
+                }
+
+
+            }
+
+        }.execute();
+    }
+
+    private class doRequest extends AsyncTask<Bitmap, String, String> {
+        // Store error message
+        private Exception e = null;
+
+        public doRequest() {
+            mTextView.setText(getResources().getString(R.string.camera_image_being_upload));
+
+        }
+
+        @Override
+        protected String doInBackground(Bitmap... args) {
+            try {
+                if (args[0] != null)
+                    return process(args[0]);
+            } catch (Exception e) {
+                this.e = e;    // Store error
+            }
+
+            return null;
+        }
+
+        @Override
+        protected void onPostExecute(String data) {
+            super.onPostExecute(data);
+            // Display based on error existence
+            if (e != null) {
+                mTextView.setText(e.getMessage());
+            } else {
+                Gson gson = new Gson();
+                AnalysisResult result = gson.fromJson(data, AnalysisResult.class);
+                mTextView.setText(result.description.captions.get(0).toString());
+            }
+
+
+        }
+
+    }
+
+    private void notifyUser(String str) {
+        mTextView.setText(str);
+        if (volumeToggle)
+            Speech.getInstance().say(str);
+    }
+
+    private void toggleVolumeIcon() {
+        if (volumeToggle) {
+            volumeToggle = false;
+            imgVolume.setImageResource(R.drawable.ic_volume_off);
+
+        } else {
+            volumeToggle = true;
+            imgVolume.setImageResource(R.drawable.ic_volume_up_black_24px);
+
+        }
+    }
 }
