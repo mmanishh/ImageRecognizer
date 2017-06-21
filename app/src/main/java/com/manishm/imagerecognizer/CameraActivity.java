@@ -4,7 +4,6 @@ import android.Manifest;
 import android.content.Intent;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
-import android.net.Uri;
 import android.os.AsyncTask;
 import android.os.Environment;
 import android.os.Handler;
@@ -12,7 +11,6 @@ import android.os.HandlerThread;
 import android.provider.MediaStore;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
-import android.support.v7.view.menu.ActionMenuItemView;
 import android.util.Log;
 import android.view.View;
 import android.widget.ImageView;
@@ -37,7 +35,8 @@ import com.google.api.services.vision.v1.model.Feature;
 import com.google.api.services.vision.v1.model.Image;
 import com.google.gson.Gson;
 import com.manishm.imagerecognizer.model.JsonResponse;
-import com.manishm.imagerecognizer.model.Responses;
+import com.manishm.imagerecognizer.utils.PackageManagerUtils;
+import com.manishm.imagerecognizer.utils.PermissionUtils;
 import com.manishm.imagerecognizer.utils.SessionManager;
 import com.microsoft.projectoxford.vision.VisionServiceClient;
 import com.microsoft.projectoxford.vision.VisionServiceRestClient;
@@ -54,9 +53,7 @@ import org.json.JSONObject;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
-import java.io.FileOutputStream;
 import java.io.IOException;
-import java.io.OutputStream;
 import java.util.ArrayList;
 
 public class CameraActivity extends AppCompatActivity {
@@ -69,10 +66,8 @@ public class CameraActivity extends AppCompatActivity {
     private ImageView imgCapture;
     private TextView mTextView;
     private Handler mBackgroundHandler;
-    public Uri imageUri;
     private SessionManager session;
     private VisionServiceClient client;
-    private FloatingActionMenu fabMenu;
     private FloatingActionButton fabInfo,fabCameraToggle,fabVolumeToggle,fabFlash,fabAddFromGallery;
 
     private boolean volumeToggle = true;
@@ -92,7 +87,6 @@ public class CameraActivity extends AppCompatActivity {
         cameraView = (CameraView) findViewById(R.id.camera_view);
         mTextView = (TextView) findViewById(R.id.tv_camera);
         imgCapture = (ImageView) findViewById(R.id.img_capture);
-        fabMenu = (FloatingActionMenu) findViewById(R.id.fab_menu);
         fabAddFromGallery = (FloatingActionButton) findViewById(R.id.fab_menu_add_photo);
         fabCameraToggle = (FloatingActionButton) findViewById(R.id.fab_menu_toggle_camera);
         fabFlash = (FloatingActionButton) findViewById(R.id.fab_menu_toggle_flash);
@@ -101,19 +95,17 @@ public class CameraActivity extends AppCompatActivity {
 
 
 
-        if(!session.getValue(SessionManager.TOGGLE_VALUE))
+        if(!session.getValue(SessionManager.TOGGLE_SPEAKER_VALUE))
             fabVolumeToggle.setImageResource(R.drawable.ic_volume_off);
 
-        //fabMenu.setOnMenuButtonClickListener();
+        if(!session.getValue(SessionManager.TOGGLE_SPEAKER_VALUE))
+            fabFlash.setImageResource(R.drawable.ic_flash_off);
 
         if (client == null) {
             client = new VisionServiceRestClient(getString(R.string.subscription_key));
         }
 
-        /*PermissionUtils.requestPermission(this, CAMERA_REQUEST_CODE, Manifest.permission.READ_EXTERNAL_STORAGE,
-                Manifest.permission.CAMERA, Manifest.permission.INTERNET, Manifest.permission.ACCESS_NETWORK_STATE);*/
 
-        //cameraView.start();
 
         if (cameraView != null) {
             cameraView.addCallback(mCallback);
@@ -138,10 +130,7 @@ public class CameraActivity extends AppCompatActivity {
 
             switch (view.getId()) {
                 case R.id.fab_menu_toggle_flash:
-                    if (cameraView.getFlash() == CameraView.FLASH_OFF)
-                        cameraView.setFlash(CameraView.FLASH_ON);
-                    else
-                        cameraView.setFacing(CameraView.FLASH_OFF);
+                    toggleFlashIcon();
                     break;
                 case R.id.fab_menu_toggle_camera:
                     if (cameraView.getFacing() == CameraView.FACING_BACK)
@@ -624,20 +613,34 @@ public class CameraActivity extends AppCompatActivity {
 
     private void notifyUser(String str) {
         mTextView.setText(str);
-        if (session.getValue(SessionManager.TOGGLE_VALUE))
+        if (session.getValue(SessionManager.TOGGLE_SPEAKER_VALUE))
             Speech.getInstance().say(str);
     }
 
     private void toggleVolumeIcon() {
-        if (session.getValue(SessionManager.TOGGLE_VALUE)) {
+        if (session.getValue(SessionManager.TOGGLE_SPEAKER_VALUE)) {
             volumeToggle = false;
-            session.storeValue(false);
+            session.toggleSpeaker(false);
             fabVolumeToggle.setImageResource(R.drawable.ic_volume_off);
 
         } else {
             volumeToggle = true;
-            session.storeValue(true);
+            session.toggleSpeaker(true);
             fabVolumeToggle.setImageResource(R.drawable.ic_volume_up_black_24px);
+
+        }
+    }
+
+    private void toggleFlashIcon() {
+        if (session.getValue(SessionManager.TOGGLE_FLASH_VALUE)) {
+            session.toggleFlash(false);
+            fabFlash.setImageResource(R.drawable.ic_flash_off);
+            cameraView.setFlash(CameraView.FLASH_OFF);
+
+        } else {
+            session.toggleFlash(true);
+            fabFlash.setImageResource(R.drawable.ic_flash_on_black_24px);
+            cameraView.setFlash(CameraView.FLASH_ON);
 
         }
     }

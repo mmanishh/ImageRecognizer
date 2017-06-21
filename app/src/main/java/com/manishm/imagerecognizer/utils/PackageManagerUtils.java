@@ -1,4 +1,4 @@
-package com.manishm.imagerecognizer;
+package com.manishm.imagerecognizer.utils;
 
 import android.content.pm.PackageInfo;
 import android.content.pm.PackageManager;

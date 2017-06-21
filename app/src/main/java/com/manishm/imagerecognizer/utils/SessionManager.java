@@ -27,7 +27,8 @@ public class SessionManager {
     public static final String PREF_NAME = "ImageRecognizer";
 
     // All Shared Preferences Keys
-    public static final String TOGGLE_VALUE = "value";
+    public static final String TOGGLE_SPEAKER_VALUE = "speaker_value";
+    public static final String TOGGLE_FLASH_VALUE = "flash_value";
 
 
 
@@ -43,9 +44,16 @@ public class SessionManager {
     /**
      * Create login session
      */
-    public void storeValue(boolean value) {
+    public void toggleFlash(boolean value) {
         // Storing login value as TRUE
-        editor.putBoolean(TOGGLE_VALUE, value);
+        editor.putBoolean(TOGGLE_FLASH_VALUE, value);
+        // commit changes
+        editor.commit();
+    }
+
+    public void toggleSpeaker(boolean value) {
+        // Storing login value as TRUE
+        editor.putBoolean(TOGGLE_SPEAKER_VALUE, value);
         // commit changes
         editor.commit();
     }
