@@ -14,7 +14,7 @@
     <string name="menu_img_add_photo">Add photo from gallery</string>
     <string name="menu_img_toggle_camera">Toggle Camera</string>
     <string name="menu_img_flash">Toggle Flash</string>
-    <string name="menu_img_toggle_volume">Toggle Volume</string>
+    <string name="menu_img_toggle_volume">Toggle Text To Speech</string>
 
     <string name="menu_img_info">Info</string>
 

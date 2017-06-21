@@ -38,6 +38,7 @@ import com.google.api.services.vision.v1.model.Image;
 import com.google.gson.Gson;
 import com.manishm.imagerecognizer.model.JsonResponse;
 import com.manishm.imagerecognizer.model.Responses;
+import com.manishm.imagerecognizer.utils.SessionManager;
 import com.microsoft.projectoxford.vision.VisionServiceClient;
 import com.microsoft.projectoxford.vision.VisionServiceRestClient;
 import com.microsoft.projectoxford.vision.contract.AnalysisResult;
@@ -45,7 +46,6 @@ import com.microsoft.projectoxford.vision.contract.Caption;
 import com.microsoft.projectoxford.vision.rest.VisionServiceException;
 
 import net.gotev.speech.Speech;
-import net.gotev.speech.TextToSpeechCallback;
 
 import org.json.JSONArray;
 import org.json.JSONException;
@@ -66,10 +66,11 @@ public class CameraActivity extends AppCompatActivity {
     private final int GALLERY_PERMISSIONS_REQUEST = 3;
     private final int GALLERY_IMAGE_REQUEST = 31;
     private CameraView cameraView;
-    private ImageView imgFrontCam, imgInfo, imgFlash, imgCapture, imgAddPhoto, imgVolume;
+    private ImageView imgCapture;
     private TextView mTextView;
     private Handler mBackgroundHandler;
     public Uri imageUri;
+    private SessionManager session;
     private VisionServiceClient client;
     private FloatingActionMenu fabMenu;
     private FloatingActionButton fabInfo,fabCameraToggle,fabVolumeToggle,fabFlash,fabAddFromGallery;
@@ -85,14 +86,12 @@ public class CameraActivity extends AppCompatActivity {
 
         Speech.init(this);
 
+        session = new SessionManager(this);
+        //volumeToggle = session.getValue(SessionManager.TOGGLE_VALUE);
+
         cameraView = (CameraView) findViewById(R.id.camera_view);
         mTextView = (TextView) findViewById(R.id.tv_camera);
-        imgFrontCam = (ImageView) findViewById(R.id.img_front_cam);
-        imgFlash = (ImageView) findViewById(R.id.img_flash);
-        imgInfo = (ImageView) findViewById(R.id.img_info);
         imgCapture = (ImageView) findViewById(R.id.img_capture);
-        imgAddPhoto = (ImageView) findViewById(R.id.img_add_pic);
-        imgVolume = (ImageView) findViewById(R.id.img_volume);
         fabMenu = (FloatingActionMenu) findViewById(R.id.fab_menu);
         fabAddFromGallery = (FloatingActionButton) findViewById(R.id.fab_menu_add_photo);
         fabCameraToggle = (FloatingActionButton) findViewById(R.id.fab_menu_toggle_camera);
@@ -102,6 +101,8 @@ public class CameraActivity extends AppCompatActivity {
 
 
 
+        if(!session.getValue(SessionManager.TOGGLE_VALUE))
+            fabVolumeToggle.setImageResource(R.drawable.ic_volume_off);
 
         //fabMenu.setOnMenuButtonClickListener();
 
@@ -127,13 +128,6 @@ public class CameraActivity extends AppCompatActivity {
         fabFlash.setOnClickListener(onClickListener);
         fabCameraToggle.setOnClickListener(onClickListener);
         fabAddFromGallery.setOnClickListener(onClickListener);
-
-       /* imgFrontCam.setOnClickListener(onClickListener);
-        imgFlash.setOnClickListener(onClickListener);
-        imgInfo.setOnClickListener(onClickListener);
-        imgAddPhoto.setOnClickListener(onClickListener);
-        imgVolume.setOnClickListener(onClickListener);*/
-        //Speech.getInstance().say(getResources().getString(R.string.camera_tap_to_capture));
 
 
     }
@@ -174,10 +168,7 @@ public class CameraActivity extends AppCompatActivity {
                     if (CommonUtils.isNetworkAvailable(CameraActivity.this)) {
                         cameraView.takePicture();
                     } else {
-                        if (volumeToggle)
-                            Speech.getInstance().say(getResources().getString(R.string.warn_internet_conn));
-                        mTextView.setText(getResources().getString(R.string.warn_internet_conn));
-
+                        notifyUser(getResources().getString(R.string.warn_internet_conn));
                     }
 
 
@@ -218,13 +209,12 @@ public class CameraActivity extends AppCompatActivity {
 
             //Uri imageUri2 = Uri.fromFile()
 
-            Toast.makeText(cameraView.getContext(), "Picture taken", Toast.LENGTH_SHORT)
-                    .show();
 
             Bitmap bitmap = BitmapFactory.decodeByteArray(data, 0, data.length);
             uploadImage(bitmap);
 
 
+/*
             getBackgroundHandler().post(new Runnable() {
                 @Override
                 public void run() {
@@ -259,6 +249,7 @@ public class CameraActivity extends AppCompatActivity {
 
 
             });
+*/
 
 
             //upload to cloud
@@ -316,7 +307,12 @@ public class CameraActivity extends AppCompatActivity {
             Bitmap bitmap = null;
             try {
                 bitmap = MediaStore.Images.Media.getBitmap(this.getContentResolver(), data.getData());
-                uploadImage(bitmap);
+                if (CommonUtils.isNetworkAvailable(CameraActivity.this)) {
+                    uploadImage(bitmap);
+                } else {
+                    notifyUser(getResources().getString(R.string.warn_internet_conn));
+
+                }
             } catch (IOException e) {
                 e.printStackTrace();
                 Toast.makeText(CameraActivity.this, "Please choose another image.", Toast.LENGTH_LONG).show();
@@ -628,17 +624,19 @@ public class CameraActivity extends AppCompatActivity {
 
     private void notifyUser(String str) {
         mTextView.setText(str);
-        if (volumeToggle)
+        if (session.getValue(SessionManager.TOGGLE_VALUE))
             Speech.getInstance().say(str);
     }
 
     private void toggleVolumeIcon() {
-        if (volumeToggle) {
+        if (session.getValue(SessionManager.TOGGLE_VALUE)) {
             volumeToggle = false;
+            session.storeValue(false);
             fabVolumeToggle.setImageResource(R.drawable.ic_volume_off);
 
         } else {
             volumeToggle = true;
+            session.storeValue(true);
             fabVolumeToggle.setImageResource(R.drawable.ic_volume_up_black_24px);
 
         }
