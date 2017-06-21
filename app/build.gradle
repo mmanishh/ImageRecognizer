@@ -51,5 +51,7 @@ dependencies {
     compile 'com.github.google:cameraview:c3f7e7dbd2'
     compile 'net.gotev:speech:1.1.7'
     compile 'com.microsoft.projectoxford:vision:1.0.374'
+    compile 'com.github.clans:fab:1.6.4'
+
 
 }

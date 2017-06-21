@@ -12,12 +12,15 @@ import android.os.HandlerThread;
 import android.provider.MediaStore;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
+import android.support.v7.view.menu.ActionMenuItemView;
 import android.util.Log;
 import android.view.View;
 import android.widget.ImageView;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import com.github.clans.fab.FloatingActionButton;
+import com.github.clans.fab.FloatingActionMenu;
 import com.google.android.cameraview.CameraView;
 import com.google.api.client.extensions.android.http.AndroidHttp;
 import com.google.api.client.googleapis.json.GoogleJsonResponseException;
@@ -68,6 +71,8 @@ public class CameraActivity extends AppCompatActivity {
     private Handler mBackgroundHandler;
     public Uri imageUri;
     private VisionServiceClient client;
+    private FloatingActionMenu fabMenu;
+    private FloatingActionButton fabInfo,fabCameraToggle,fabVolumeToggle,fabFlash,fabAddFromGallery;
 
     private boolean volumeToggle = true;
 
@@ -88,7 +93,17 @@ public class CameraActivity extends AppCompatActivity {
         imgCapture = (ImageView) findViewById(R.id.img_capture);
         imgAddPhoto = (ImageView) findViewById(R.id.img_add_pic);
         imgVolume = (ImageView) findViewById(R.id.img_volume);
+        fabMenu = (FloatingActionMenu) findViewById(R.id.fab_menu);
+        fabAddFromGallery = (FloatingActionButton) findViewById(R.id.fab_menu_add_photo);
+        fabCameraToggle = (FloatingActionButton) findViewById(R.id.fab_menu_toggle_camera);
+        fabFlash = (FloatingActionButton) findViewById(R.id.fab_menu_toggle_flash);
+        fabVolumeToggle = (FloatingActionButton) findViewById(R.id.fab_menu_toggle_volume);
+        fabInfo = (FloatingActionButton) findViewById(R.id.fab_menu_info);
 
+
+
+
+        //fabMenu.setOnMenuButtonClickListener();
 
         if (client == null) {
             client = new VisionServiceRestClient(getString(R.string.subscription_key));
@@ -104,12 +119,20 @@ public class CameraActivity extends AppCompatActivity {
         }
 
         cameraView.setOnClickListener(onClickListener);
-        imgFrontCam.setOnClickListener(onClickListener);
+        imgCapture.setOnClickListener(onClickListener);
+
+
+        fabInfo.setOnClickListener(onClickListener);
+        fabVolumeToggle.setOnClickListener(onClickListener);
+        fabFlash.setOnClickListener(onClickListener);
+        fabCameraToggle.setOnClickListener(onClickListener);
+        fabAddFromGallery.setOnClickListener(onClickListener);
+
+       /* imgFrontCam.setOnClickListener(onClickListener);
         imgFlash.setOnClickListener(onClickListener);
         imgInfo.setOnClickListener(onClickListener);
-        imgCapture.setOnClickListener(onClickListener);
         imgAddPhoto.setOnClickListener(onClickListener);
-        imgVolume.setOnClickListener(onClickListener);
+        imgVolume.setOnClickListener(onClickListener);*/
         //Speech.getInstance().say(getResources().getString(R.string.camera_tap_to_capture));
 
 
@@ -120,27 +143,27 @@ public class CameraActivity extends AppCompatActivity {
         public void onClick(View view) {
 
             switch (view.getId()) {
-                case R.id.img_flash:
+                case R.id.fab_menu_toggle_flash:
                     if (cameraView.getFlash() == CameraView.FLASH_OFF)
                         cameraView.setFlash(CameraView.FLASH_ON);
                     else
                         cameraView.setFacing(CameraView.FLASH_OFF);
                     break;
-                case R.id.img_front_cam:
+                case R.id.fab_menu_toggle_camera:
                     if (cameraView.getFacing() == CameraView.FACING_BACK)
                         cameraView.setFacing(CameraView.FACING_FRONT);
                     else
                         cameraView.setFacing(CameraView.FACING_BACK);
                     break;
-                case R.id.img_info:
+                case R.id.fab_menu_info:
                     startActivity(new Intent(CameraActivity.this, InfoActivity.class));
                     break;
 
-                case R.id.img_add_pic:
+                case R.id.fab_menu_add_photo:
                     startGalleryChooser();
                     break;
 
-                case R.id.img_volume:
+                case R.id.fab_menu_toggle_volume:
                     toggleVolumeIcon();
 
                     break;
@@ -612,11 +635,11 @@ public class CameraActivity extends AppCompatActivity {
     private void toggleVolumeIcon() {
         if (volumeToggle) {
             volumeToggle = false;
-            imgVolume.setImageResource(R.drawable.ic_volume_off);
+            fabVolumeToggle.setImageResource(R.drawable.ic_volume_off);
 
         } else {
             volumeToggle = true;
-            imgVolume.setImageResource(R.drawable.ic_volume_up_black_24px);
+            fabVolumeToggle.setImageResource(R.drawable.ic_volume_up_black_24px);
 
         }
     }

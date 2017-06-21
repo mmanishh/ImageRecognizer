@@ -4,7 +4,8 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="fill_parent"
-    android:layout_height="fill_parent">
+    android:layout_height="fill_parent"
+    xmlns:fab="http://schemas.android.com/apk/res-auto">
 
 
     <com.google.android.cameraview.CameraView
@@ -31,12 +32,59 @@
         android:layout_gravity="center"
         android:background="@drawable/text_style"/>
 
+    <com.github.clans.fab.FloatingActionMenu
+        android:id="@+id/fab_menu"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="right"
+        fab:menu_openDirection="down"
+        app:menu_fab_size="mini">
+        <com.github.clans.fab.FloatingActionButton
+            android:id="@+id/fab_menu_toggle_camera"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:src="@drawable/ic_camera_front_black_24px"
+            fab:fab_size="mini"
+            fab:fab_label="@string/menu_img_toggle_camera"/>
+        <com.github.clans.fab.FloatingActionButton
+            android:id="@+id/fab_menu_add_photo"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:src="@drawable/ic_add_a_photo_black_24px"
+            fab:fab_size="mini"
+            fab:fab_label="@string/menu_img_add_photo"/>
+        <com.github.clans.fab.FloatingActionButton
+            android:id="@+id/fab_menu_toggle_flash"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:src="@drawable/ic_flash_on_black_24px"
+            fab:fab_size="mini"
+            fab:fab_label="@string/menu_img_flash"/>
+        <com.github.clans.fab.FloatingActionButton
+            android:id="@+id/fab_menu_toggle_volume"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:src="@drawable/ic_volume_up_black_24px"
+            fab:fab_size="mini"
+            fab:fab_label="@string/menu_img_toggle_volume"/>
+
+        <com.github.clans.fab.FloatingActionButton
+            android:id="@+id/fab_menu_info"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:src="@drawable/ic_info_outline_black_24px"
+            fab:fab_size="mini"
+            fab:fab_label="@string/menu_img_info"/>
+
+    </com.github.clans.fab.FloatingActionMenu>
+
     <LinearLayout
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_gravity="end|right"
         android:layout_margin="5dp"
         android:orientation="horizontal"
+        android:visibility="gone"
         >
         <ImageView
             android:id="@+id/img_volume"
@@ -81,6 +129,7 @@
             android:src="@drawable/ic_info_outline_black_24px"/>
 
     </LinearLayout>
+
 
     <ImageView
         android:id="@+id/img_capture"
